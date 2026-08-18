@@ -43,12 +43,6 @@ namespace NekoPalettes.Runtime
             ApplyPalette();
         }
 
-        private void OnValidate()
-        {
-            // Shade: Update live in the Editor when changing values in the Inspector
-            ApplyPalette();
-        }
-
         /// <summary>
         /// Sets the current palette index and updates the shader properties.
         /// <para>

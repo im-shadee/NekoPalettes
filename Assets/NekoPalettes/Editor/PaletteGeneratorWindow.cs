@@ -29,12 +29,22 @@ namespace NekoPalettes.Editor
         // Shade: Runtime texture used to display real-time recoloring in the window
         private Texture2D m_PreviewTexture = null;
 
-        [MenuItem("Tools/NekoPalettes/Palette Generator & Editor")]
+        [MenuItem("Tools/NekoPalettes/Palette Generator and Editor")]
         public static void ShowWindow()
         {
             // Shade: Create our palette editor window of size 450x550 by default
             PaletteGeneratorWindow window = GetWindow<PaletteGeneratorWindow>("Palette Editor");
             window.minSize = new Vector2(450, 550);
+        }
+
+        private void OnEnable()
+        {
+            // Shade: Auto-select sprite if one is highlighted in the Project window when opening
+            if (Selection.activeObject is Texture2D tex)
+            {
+                m_SourceTexture = tex;
+                ExtractBasePalette();
+            }
         }
 
         private void OnGUI()
@@ -46,9 +56,9 @@ namespace NekoPalettes.Editor
             // Shade: Track changes to the assigned source texture field
             EditorGUI.BeginChangeCheck();
             m_SourceTexture = (Texture2D)EditorGUILayout.ObjectField(
-                "Source Sprite Texture", 
-                m_SourceTexture, 
-                typeof(Texture2D), 
+                "Source Sprite Texture",
+                m_SourceTexture,
+                typeof(Texture2D),
                 allowSceneObjects: false
             );
 
@@ -127,6 +137,23 @@ namespace NekoPalettes.Editor
                     uniqueColors.Add(pixel);
                 }
             }
+
+            // Shade: Sort colors by Hue first, then Brightness, then Saturation
+            uniqueColors.Sort((c1, c2) =>
+            {
+                Color color1 = c1;
+                Color color2 = c2;
+                Color.RGBToHSV(color1, out float h1, out float s1, out float v1);
+                Color.RGBToHSV(color2, out float h2, out float s2, out float v2);
+
+                int hueCompare = h1.CompareTo(h2);
+                if (hueCompare != 0) return hueCompare;
+
+                int valCompare = v1.CompareTo(v2);
+                if (valCompare != 0) return valCompare;
+
+                return s1.CompareTo(s2);
+            });
 
             // Shade: Reset internal palette lists before populating with newly extracted colors
             m_BasePaletteColors.Clear();
@@ -294,6 +321,7 @@ namespace NekoPalettes.Editor
                 paletteImporter.mipmapEnabled = false;        // Shade: Disable mipmaps as palette texture is never scaled in 3D space
                 paletteImporter.textureCompression = TextureImporterCompression.Uncompressed; // Shade: Lossless color data
                 paletteImporter.wrapMode = TextureWrapMode.Clamp; // Shade: Prevent UV wrapping overflow at texture edges
+                paletteImporter.npotScale = TextureImporterNPOTScale.None; // Shade: Set to None instead of ToNearest to avoid smudging
                 paletteImporter.SaveAndReimport();
             }
 
@@ -304,65 +332,26 @@ namespace NekoPalettes.Editor
         {
             if (m_SourceTexture == null || m_BasePaletteColors.Count == 0) return;
 
-            EnsureTextureIsReadable(m_SourceTexture);
-
-            Color[] pixels = m_SourceTexture.GetPixels();
-            Color[] indexedPixels = new Color[pixels.Length];
-            float paletteCount = m_BasePaletteColors.Count;
-
-            // Shade: Loop over all pixels to encode palette slot indices directly into the Red channel
-            for (int i = 0; i < pixels.Length; i++)
+            // Shade: Route through the shared utility so the encoding here is byte-for-byte identical
+            // to what ManualSpriteBaker produces - same half-texel index formula, same importer settings.
+            string assetPath = AssetDatabase.GetAssetPath(m_SourceTexture);
+            if (string.IsNullOrEmpty(assetPath))
             {
-                // Shade: Pass clear pixels directly through without index encoding
-                if (pixels[i].a == 0)
-                {
-                    indexedPixels[i] = Color.clear;
-                    continue;
-                }
-
-                // Shade: Locate matching palette slot for current pixel color
-                int slotIndex = FindClosestColorIndex(pixels[i], m_BasePaletteColors);
-
-                // Shade: Normalize integer slot index into 0.0 to 1.0 float range for shader sampling
-                float normalizedIndex = slotIndex / (paletteCount - 1.0f);
-
-                // Shade: Store normalized index in R channel, zero out G/B channels, and preserve original alpha
-                indexedPixels[i] = new Color(normalizedIndex, 0f, 0f, pixels[i].a);
+                Debug.LogError("[NekoPalettes] Source texture has no valid project asset path.");
+                return;
             }
 
-            // Shade: Create target indexed texture container
-            Texture2D indexedTex = new Texture2D(m_SourceTexture.width, m_SourceTexture.height, TextureFormat.RGBA32, false)
+            if (!Directory.Exists(m_SaveFolderPath))
             {
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Clamp
-            };
-
-            indexedTex.SetPixels(indexedPixels);
-            indexedTex.Apply();
-
-            // Shade: Construct path and save baked indexed PNG asset
-            string fullPath = Path.Combine(m_SaveFolderPath, $"{m_SourceTexture.name}_Indexed.png");
-            File.WriteAllBytes(fullPath, indexedTex.EncodeToPNG());
-
-            // Shade: Refresh AssetDatabase to import the new baked sprite
-            AssetDatabase.Refresh();
-
-            // Shade: Configure texture importer specifically for indexed shader consumption
-            TextureImporter spriteImporter = AssetImporter.GetAtPath(fullPath) as TextureImporter;
-            if (spriteImporter != null)
-            {
-                spriteImporter.textureType = TextureImporterType.Sprite;
-                spriteImporter.filterMode = FilterMode.Point;
-                spriteImporter.mipmapEnabled = false;
-                spriteImporter.textureCompression = TextureImporterCompression.Uncompressed;
-
-                // Shade: Disable sRGB to prevent gamma correction curves from corrupting precise normalized float indices
-                spriteImporter.sRGBTexture = false;
-
-                spriteImporter.SaveAndReimport();
+                Directory.CreateDirectory(m_SaveFolderPath);
             }
 
-            Debug.Log($"[NekoPalettes] Baked indexed sprite to: {fullPath}");
+            string outputPath = Path.Combine(m_SaveFolderPath, $"{m_SourceTexture.name}_Indexed.png");
+
+            BakeUtility.EnsureTextureIsReadable(assetPath);
+            BakeUtility.BakeTextureToIndexed(assetPath, m_BasePaletteColors.ToArray(), outputPath);
+
+            Debug.Log($"[NekoPalettes] Baked indexed sprite to: {outputPath}");
         }
 
         private int FindClosestColorIndex(Color color, List<Color> palette)
@@ -392,16 +381,14 @@ namespace NekoPalettes.Editor
 
         private void EnsureTextureIsReadable(Texture2D texture)
         {
-            // Shade: Find asset path for assigned texture in the Unity project
-            string path = AssetDatabase.GetAssetPath(texture);
-            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            // Shade: Thin convenience wrapper - resolves the asset path then delegates to the
+            // single shared implementation so there's only one place that touches import settings.
+            if (texture == null) return;
 
-            // Shade: If Read/Write is disabled in import settings, enable it automatically and reimport asset
-            if (importer != null && !importer.isReadable)
-            {
-                importer.isReadable = true;
-                importer.SaveAndReimport();
-            }
+            string path = AssetDatabase.GetAssetPath(texture);
+            if (string.IsNullOrEmpty(path)) return;
+
+            BakeUtility.EnsureTextureIsReadable(path);
         }
     }
 }
