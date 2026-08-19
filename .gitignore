@@ -45,6 +45,7 @@ ExportedObj/
 *.booproj
 *.svd
 *.pdb
+*.vsconfig
 *.mdb
 *.opendb
 *.VC.db
@@ -73,3 +74,12 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Unity Projects Folders (package only)
+/[Aa]ssets
+/[Ll]ibrary
+/[Ll]ogs
+/[Oo]bj
+/[Pp]rojectSettings
+/[Tt]emp
+/[Uu]ser[Ss]ettings

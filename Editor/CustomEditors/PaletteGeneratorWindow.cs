@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using NekoPalettes.Internal;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -29,6 +30,9 @@ namespace NekoPalettes.Editor
         // Shade: Runtime texture used to display real-time recoloring in the window
         private Texture2D m_PreviewTexture = null;
 
+        /// <summary>
+        /// Opens and initializes the Palette Generator EditorWindow instance.
+        /// </summary>
         [MenuItem("Tools/NekoPalettes/Palette Generator and Editor")]
         public static void ShowWindow()
         {
@@ -116,6 +120,9 @@ namespace NekoPalettes.Editor
             }
         }
 
+        /// <summary>
+        /// Reads unique pixel colors from the source texture, sorts them by HSV, and builds the baseline color set.
+        /// </summary>
         private void ExtractBasePalette()
         {
             // Shade: Force read/write access on the texture so GetPixels32 doesn't crash at runtime
@@ -173,6 +180,9 @@ namespace NekoPalettes.Editor
             UpdatePreviewTexture();
         }
 
+        /// <summary>
+        /// Renders the GUI scroll view containing base colors and editable target color fields.
+        /// </summary>
         private void DrawPaletteSwatches()
         {
             GUILayout.Label($"Palette Swatches ({m_BasePaletteColors.Count} Colors)", EditorStyles.boldLabel);
@@ -210,6 +220,9 @@ namespace NekoPalettes.Editor
             EditorGUILayout.EndScrollView();
         }
 
+        /// <summary>
+        /// Renders the recolored texture inside the Editor Window GUI.
+        /// </summary>
         private void DrawSpritePreview()
         {
             if (m_PreviewTexture == null) return;
@@ -223,6 +236,9 @@ namespace NekoPalettes.Editor
             GUI.DrawTexture(previewRect, m_PreviewTexture, ScaleMode.ScaleToFit);
         }
 
+        /// <summary>
+        /// Re-maps colors on the preview texture to provide live feedback during editing.
+        /// </summary>
         private void UpdatePreviewTexture()
         {
             if (m_SourceTexture == null) return;
@@ -277,6 +293,10 @@ namespace NekoPalettes.Editor
             Repaint();
         }
 
+        /// <summary>
+        /// Saves the active color swatches as a 1xN PNG palette texture file.
+        /// Generates a unique path if a duplicate file exists.
+        /// </summary>
         private void SavePaletteAsPNG()
         {
             if (m_NewPaletteColors.Count == 0) return;
@@ -296,38 +316,35 @@ namespace NekoPalettes.Editor
 
             paletteTex.Apply();
 
-            // Shade: Create target folder on disk if it does not already exist
-            if (!Directory.Exists(m_SaveFolderPath))
-            {
-                Directory.CreateDirectory(m_SaveFolderPath);
-            }
-
-            // Shade: Combine directory path and filename to build final system file path
-            string fullPath = Path.Combine(m_SaveFolderPath, $"{m_PaletteName}.png");
+            // Shade: Generate unique project-relative asset path to avoid overwriting existing files
+            string targetAssetPath = GetUniqueTargetPath(m_SaveFolderPath, m_PaletteName, ".png");
 
             // Shade: Encode raw texture pixels to PNG binary format and write directly to disk
             byte[] bytes = paletteTex.EncodeToPNG();
-            File.WriteAllBytes(fullPath, bytes);
+            File.WriteAllBytes(targetAssetPath, bytes);
 
             // Shade: Trigger Unity AssetDatabase to scan and discover the newly created PNG file
             AssetDatabase.Refresh();
 
             // Shade: Fetch TextureImporter instance to configure optimal import settings for 1D palette sampling
-            TextureImporter paletteImporter = AssetImporter.GetAtPath(fullPath) as TextureImporter;
+            TextureImporter paletteImporter = AssetImporter.GetAtPath(targetAssetPath) as TextureImporter;
             if (paletteImporter != null)
             {
                 paletteImporter.textureType = TextureImporterType.Default;
                 paletteImporter.filterMode = FilterMode.Point; // Shade: Prevent bilinear blending between adjacent palette pixels
-                paletteImporter.mipmapEnabled = false;        // Shade: Disable mipmaps as palette texture is never scaled in 3D space
+                paletteImporter.mipmapEnabled = false;         // Shade: Disable mipmaps as palette texture is never scaled in 3D space
                 paletteImporter.textureCompression = TextureImporterCompression.Uncompressed; // Shade: Lossless color data
                 paletteImporter.wrapMode = TextureWrapMode.Clamp; // Shade: Prevent UV wrapping overflow at texture edges
                 paletteImporter.npotScale = TextureImporterNPOTScale.None; // Shade: Set to None instead of ToNearest to avoid smudging
                 paletteImporter.SaveAndReimport();
             }
 
-            Debug.Log($"[NekoPalettes] Saved palette asset ({m_NewPaletteColors.Count} colors) to: {fullPath}");
+            NekoPaletteDebug.Log($"Saved palette asset ({m_NewPaletteColors.Count} colors) to: {targetAssetPath}");
         }
 
+        /// <summary>
+        /// Bakes the current source sprite into an indexed format with unique output path handling.
+        /// </summary>
         private void BakeIndexedSprite()
         {
             if (m_SourceTexture == null || m_BasePaletteColors.Count == 0) return;
@@ -337,23 +354,56 @@ namespace NekoPalettes.Editor
             string assetPath = AssetDatabase.GetAssetPath(m_SourceTexture);
             if (string.IsNullOrEmpty(assetPath))
             {
-                Debug.LogError("[NekoPalettes] Source texture has no valid project asset path.");
+                NekoPaletteDebug.LogError("Source texture has no valid project asset path.");
                 return;
             }
 
-            if (!Directory.Exists(m_SaveFolderPath))
-            {
-                Directory.CreateDirectory(m_SaveFolderPath);
-            }
-
-            string outputPath = Path.Combine(m_SaveFolderPath, $"{m_SourceTexture.name}_Indexed.png");
+            // Shade: Generate unique project-relative asset path for the baked indexed texture
+            string targetFileName = $"{m_SourceTexture.name}_Indexed";
+            string outputPath = GetUniqueTargetPath(m_SaveFolderPath, targetFileName, ".png");
 
             BakeUtility.EnsureTextureIsReadable(assetPath);
             BakeUtility.BakeTextureToIndexed(assetPath, m_BasePaletteColors.ToArray(), outputPath);
 
-            Debug.Log($"[NekoPalettes] Baked indexed sprite to: {outputPath}");
+            NekoPaletteDebug.Log($"Baked indexed sprite to: {outputPath}");
         }
 
+        /// <summary>
+        /// Calculates a unique project-relative file path for new assets.
+        /// Appends standard numeric suffixes (_1, _2, etc.) if collision is detected.
+        /// </summary>
+        /// <param name="folderPath">The relative target folder path in the project.</param>
+        /// <param name="baseName">The requested base file name without extension.</param>
+        /// <param name="extension">File extension (e.g., ".png").</param>
+        /// <returns>A valid, non-colliding Unity asset path.</returns>
+        private string GetUniqueTargetPath(string folderPath, string baseName, string extension)
+        {
+            // Shade: Ensure directory structure exists on local storage
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+
+            // Shade: Standardize path separators to Unity style forward slashes
+            string sanitizedFolder = folderPath.Replace("\\", "/");
+            if (!sanitizedFolder.EndsWith("/"))
+            {
+                sanitizedFolder += "/";
+            }
+
+            // Shade: Combine components into asset relative path format
+            string defaultPath = $"{sanitizedFolder}{baseName}{extension}";
+
+            // Shade: GenerateUniqueAssetPath appends _1, _2, etc., if defaultPath already exists
+            return AssetDatabase.GenerateUniqueAssetPath(defaultPath);
+        }
+
+        /// <summary>
+        /// Evaluates vector distance between pixel color and reference palette colors to return the index of the closest match.
+        /// </summary>
+        /// <param name="color">The source pixel color.</param>
+        /// <param name="palette">The reference color palette array.</param>
+        /// <returns>Index of the closest color entry.</returns>
         private int FindClosestColorIndex(Color color, List<Color> palette)
         {
             int bestIndex = 0;
@@ -379,6 +429,10 @@ namespace NekoPalettes.Editor
             return bestIndex;
         }
 
+        /// <summary>
+        /// Helper wrapper ensuring that a target Texture2D is configured to be CPU readable.
+        /// </summary>
+        /// <param name="texture">Target texture instance to check.</param>
         private void EnsureTextureIsReadable(Texture2D texture)
         {
             // Shade: Thin convenience wrapper - resolves the asset path then delegates to the

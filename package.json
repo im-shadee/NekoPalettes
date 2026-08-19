@@ -1,0 +1,20 @@
+{
+  "name": "com.shade.nekopalettes",
+  "version": "1.0.0-rc.1",
+  "displayName": "NekoPalettes",
+  "description": "Interactive palette generator, editor, and indexed sprite baking tool for Unity.",
+  "unity": "6000.3",
+  "author": {
+    "name": "Shade"
+  },
+  "license": "MIT",
+  "licensesUrl": "https://github.com/im-shadee/NekoPalettes/blob/main/LICENSE",
+  "documentationUrl": "https://github.com/im-shadee/NekoPalettes",
+  "samples": [
+    {
+      "displayName": "Demo Scenes & Palettes",
+      "description": "Example sprites, scenes, and generated palettes to test the workflow.",
+      "path": "Samples~"
+    }
+  ]
+}
