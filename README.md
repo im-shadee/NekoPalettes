@@ -63,7 +63,7 @@ To install NekoPalettes:
 
 <img width="277" height="228" alt="image" src="https://github.com/user-attachments/assets/f84eab08-f3cb-485b-aaa5-914f767fe241" />
 
-3. Finally, enter this link: `https://github.com/im-shadee/NekoPalettes.git`, and press "Install". Done!
+3. Finally, enter this link: `https://github.com/im-shadee/NekoPalettes.git?path=/Package`, and press "Install". Done!
 
 ---
 **⚠️ This package also includes test assets and examples intended to show how to create your own swappable sprites.**
