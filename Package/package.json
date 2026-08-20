@@ -8,7 +8,7 @@
     "name": "Shade"
   },
   "license": "MIT",
-  "licensesUrl": "https://github.com/im-shadee/NekoPalettes/blob/main/LICENSE",
+  "licensesUrl": "https://github.com/im-shadee/NekoPalettes/blob/main/Package/LICENSE",
   "documentationUrl": "https://github.com/im-shadee/NekoPalettes",
   "dependencies": {
     "com.unity.2d.sprite": "1.0.0"
