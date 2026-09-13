@@ -1,6 +1,6 @@
 {
   "name": "com.shade.nekopalettes",
-  "version": "1.1.0-rc.1",
+  "version": "1.1.0-rc.2",
   "displayName": "NekoPalettes",
   "description": "Interactive palette generator, editor, and indexed sprite baking tool for Unity.",
   "unity": "6000.3",
