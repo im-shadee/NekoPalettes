@@ -43,6 +43,14 @@ namespace NekoPalettes.Runtime
             ApplyPalette();
         }
 
+        private void OnEnable()
+        {
+            if (!Application.isPlaying)
+            {
+                ApplyPalette();
+            }
+        }
+
         /// <summary>
         /// Sets the current palette index and updates the shader properties.
         /// <para>
