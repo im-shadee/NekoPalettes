@@ -1,6 +1,8 @@
 # NekoPalettes
 > A lightweight palette authoring and GPU palette-swapping workflow for retro sprites in Unity.
 
+[Features](#-features) • [Installation](#-installation) • [Changelog](./Package/CHANGELOG.md)
+
 **⚠️ Early release: NekoPalettes is currently undergoing external testing. Bugs and compatibility issues may still exist.**
 
 NekoPalettes lets you create, preview, bake, and use color palettes directly inside Unity, without needing to open an external image editor for every palette variant.
