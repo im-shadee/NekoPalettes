@@ -1,7 +1,7 @@
 # NekoPalettes
 > A lightweight palette authoring and GPU palette-swapping workflow for retro sprites in Unity.
 
-[Features](#-features) • [Installation](#-installation) • [Changelog](./Package/CHANGELOG.md)
+[Features](#-features) • [Installation](#-installation) • [Changelog](./Package/CHANGELOG.md) • [Getting Started](https://github.com/im-shadee/NekoPalettes/blob/main/quickguide.md)
 
 **⚠️ Early release: NekoPalettes is currently undergoing external testing. Bugs and compatibility issues may still exist.**
 
