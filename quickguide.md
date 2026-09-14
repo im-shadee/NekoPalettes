@@ -64,7 +64,7 @@ The bottom pane contains the live preview of your palette modifications as well 
 The live preview allows you to see the new colors that will be applied to your sprite at runtime. You can zoom in in case your sprite sheets are too large to see changes from closer.
 
 You can also bake your sprite once you're done (optional) and export the new palette using the 'Export palette as png' button. 
-**Make sure to click the 'Reset Colors' button on the top pain to export the default color palette!**"
+**Make sure to click the 'Reset Colors' button on the top pane to export the default color palette!**"
 
 
 ## Baking your sprites
