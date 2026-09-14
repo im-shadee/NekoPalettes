@@ -26,9 +26,11 @@ If NekoPalettes throws debug errors, remove the package from Unity and install i
 
 
 ### Bases - Importing a sprite in Unity
-// TODO:
-You can follow [this guide](https://example.com/) I wrote to import a sprite into Unity 6+ (and some tips and tricks to optimize asset size) if this is still unclear to you.
-While the editor should be able to do it for you, I wouldn't rely on it solely.
+You can follow the official [Unity Documentation](https://docs.unity3d.com/6000.3/Documentation/Manual/texture-type-sprite.html) for more information on the Sprite texture type import settings.
+
+I also wrote a guide (coming soon!) to import a sprite into Unity 6+ (and some tips and tricks to optimize asset size) if this is still unclear to you.
+
+While the Baking Utility/Palette Editor should be able to do it for you, I wouldn't rely on it solely.
 
 ---
 ## Using the Palette Generator tool
