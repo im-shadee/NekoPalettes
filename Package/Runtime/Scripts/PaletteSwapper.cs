@@ -43,12 +43,9 @@ namespace NekoPalettes.Runtime
             ApplyPalette();
         }
 
-        private void OnEnable()
+        private void OnValidate()
         {
-            if (!Application.isPlaying)
-            {
-                ApplyPalette();
-            }
+            ApplyPalette();
         }
 
         /// <summary>

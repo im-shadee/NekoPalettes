@@ -49,6 +49,11 @@ namespace NekoPalettes.Runtime
             ApplyChromaKey();
         }
 
+        private void OnValidate()
+        {
+            ApplyChromaKey();
+        }
+
         /// <summary>
         /// Applies the key color and tolerance to the SpriteRenderer via MaterialPropertyBlock.
         /// Preserves existing MaterialPropertyBlock data to work side-by-side with PaletteSwapper.
